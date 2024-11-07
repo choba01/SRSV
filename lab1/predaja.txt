@@ -1,0 +1,3 @@
+napravljen je dio lab1a, ali s nekom greškom koju nisam uspio dešifriati.
+za jednu dretvu mi se pri detekciji da je omjer neobradjenih sa ukupnim veći od 0.3, jedna od dretvi mi nerezonski poveća svoj broj neobradjenih promjena.
+lab1b dio nisam odradio kad sam neuspjesno pokusavao izvrsiti dio a.

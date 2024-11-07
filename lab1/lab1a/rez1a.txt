@@ -1,0 +1,59 @@
+Statistika za ulaz 0:
+  Broj promjena stanja: 8
+  Prosječno vrijeme reakcije: 0.06052500 ms
+  Maksimalno vrijeme reakcije: 0.48130000 ms
+  Broj neobrađenih događaja: 11
+
+Statistika za ulaz 1:
+  Broj promjena stanja: 8
+  Prosječno vrijeme reakcije: 1.31172500 ms
+  Maksimalno vrijeme reakcije: 10.48170000 ms
+  Broj neobrađenih događaja: 1
+
+Statistika za ulaz 2:
+  Broj promjena stanja: 7
+  Prosječno vrijeme reakcije: 2.99435714 ms
+  Maksimalno vrijeme reakcije: 10.47550000 ms
+  Broj neobrađenih događaja: 0
+
+Statistika za ulaz 3:
+  Broj promjena stanja: 2
+  Prosječno vrijeme reakcije: 5.23800000 ms
+  Maksimalno vrijeme reakcije: 10.47550000 ms
+  Broj neobrađenih događaja: 0
+
+Statistika za ulaz 4:
+  Broj promjena stanja: 2
+  Prosječno vrijeme reakcije: 0.00420000 ms
+  Maksimalno vrijeme reakcije: 0.00790000 ms
+  Broj neobrađenih događaja: 0
+
+Statistika za ulaz 5:
+  Broj promjena stanja: 2
+  Prosječno vrijeme reakcije: 0.00030000 ms
+  Maksimalno vrijeme reakcije: 0.00050000 ms
+  Broj neobrađenih događaja: 0
+
+Statistika za ulaz 6:
+  Broj promjena stanja: 2
+  Prosječno vrijeme reakcije: 0.70980000 ms
+  Maksimalno vrijeme reakcije: 1.41150000 ms
+  Broj neobrađenih događaja: 0
+
+Statistika za ulaz 7:
+  Broj promjena stanja: 2
+  Prosječno vrijeme reakcije: 0.00715000 ms
+  Maksimalno vrijeme reakcije: 0.00980000 ms
+  Broj neobrađenih događaja: 0
+
+Statistika za ulaz 8:
+  Broj promjena stanja: 2
+  Prosječno vrijeme reakcije: 0.00035000 ms
+  Maksimalno vrijeme reakcije: 0.00050000 ms
+  Broj neobrađenih događaja: 0
+
+Statistika ukupno:
+  Broj promjena stanja: 35
+  Prosječno vrijeme reakcije: 0.29504020 ms
+  Maksimalno vrijeme reakcije: 10.48170000 ms
+  Broj neobrađenih događaja: 12

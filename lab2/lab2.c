@@ -190,7 +190,7 @@ void *ulaznaDretva(void *arg)
         return NULL;
     }
     int trenutakPrvePojave = param[1];
-    printf("trenutak prve pojave dretve %d je %d \n",id,trenutakPrvePojave);
+    //printf("trenutak prve pojave dretve %d je %d \n",id,trenutakPrvePojave);
     int perioda = param[2];
     int vrijemeObrade = param[3];
     Statistika stat = {0, 0.0, 0.0, 0}; // Inicijalizacija statistike za ovu dretvu
@@ -229,16 +229,16 @@ void *ulaznaDretva(void *arg)
             clock_gettime(CLOCK_MONOTONIC, &trenutnoVrijeme);
         }
 
-        if ((vrijemeReakcijeUlaza[id].tv_sec != 0 || vrijemeReakcijeUlaza[id].tv_nsec != 0) && nijeKraj)//odgovor primljen od upravljaca
+        if ( (vrijemeReakcijeUlaza[id].tv_sec != 0 || vrijemeReakcijeUlaza[id].tv_nsec != 0) && nijeKraj)//odgovor primljen od upravljaca
         {
-            printf("%d: Tocno vrijeme kad je prepoznata promjena : tv_sec = %ld, tv_nsec = %ld\n", 
-               id, vrijemeReakcijeUlaza[id].tv_sec, vrijemeReakcijeUlaza[id].tv_nsec);
-            printf("%d: Tocno vrijeme kad je promjena postavljena: tv_sec = %ld, tv_nsec = %ld\n", 
-               id, trenutakPromjeneStanja.tv_sec, trenutakPromjeneStanja.tv_nsec);
-            double vrijemeReakcije = izracunajVrijemeUMilisekundama(trenutakPromjeneStanja, vrijemeReakcijeUlaza[id]);
-            printf("Vrijeme reakcije za dretvu %d: %.8f ms\n", id,vrijemeReakcije);
             if(ulazniParametri[id][5]==1){//obrada upravljaca gotova
-
+                printf("%d: Tocno vrijeme kad je prepoznata promjena : tv_sec = %ld, tv_nsec = %ld\n", 
+                id, vrijemeReakcijeUlaza[id].tv_sec, vrijemeReakcijeUlaza[id].tv_nsec);
+                printf("%d: Tocno vrijeme kad je promjena postavljena: tv_sec = %ld, tv_nsec = %ld\n", 
+                id, trenutakPromjeneStanja.tv_sec, trenutakPromjeneStanja.tv_nsec);
+                double vrijemeReakcije = izracunajVrijemeUMilisekundama(trenutakPromjeneStanja, vrijemeReakcijeUlaza[id]);
+                printf("Vrijeme reakcije za dretvu %d: %.8f ms\n", id,vrijemeReakcije);
+                printf("ZAVRSILA JE OBRADA DRETVE %d\n",id);
                 stat.brojPromjenaStanja++;
                 stat.prosjecnoVrijemeReakcije = ((stat.prosjecnoVrijemeReakcije * (stat.brojPromjenaStanja - 1)) + vrijemeReakcije) / stat.brojPromjenaStanja;
                 if (vrijemeReakcije > stat.maksimalnoVrijemeReakcije)
@@ -299,7 +299,8 @@ static void obradiUlaz(int signum){
             zahtjevZaObradom = 0;
             
             ulazniParametri[upravljac.aktivanUlaz][6] = 1; //obrada ulaza je prekinuta
-            upravljac.aktivanUlaz=0;
+            ulazniParametri[upravljac.aktivanUlaz][9]++;
+            upravljac.aktivanUlaz=-1;
             printajVrijeme("Upravljac: Obrada prekinuta.");
         }
     
@@ -308,7 +309,7 @@ static void obradiUlaz(int signum){
     int sljedeciUlaz = dajIduci();
     printf("sljedeci Ulaz=%d\n",sljedeciUlaz);
    
-    if (sljedeciUlaz == -1 || ulazniParametri[sljedeciUlaz][7] == 0 && sljedeciUlaz != -1){
+    if (zahtjevajucaDretva == -1 || sljedeciUlaz == -1 || ulazniParametri[sljedeciUlaz][7] == 0 && sljedeciUlaz != -1){
         printajVrijeme("Upravljac: Ovo je prazan period.");
         //vrati se iz funkcije-ali kak da to napravim
         return;
@@ -316,10 +317,10 @@ static void obradiUlaz(int signum){
     //zahtjevZaObradom = 1;
     if (sljedeciUlaz == zahtjevajucaDretva){
         printf("idem obraditi dretvu %d\n",zahtjevajucaDretva);
+        struct timespec reakcija;
+        clock_gettime(CLOCK_MONOTONIC, &reakcija);
+        vrijemeReakcijeUlaza[sljedeciUlaz] = reakcija;
     }
-    struct timespec reakcija;
-    clock_gettime(CLOCK_MONOTONIC, &reakcija);
-    vrijemeReakcijeUlaza[sljedeciUlaz] = reakcija;
     //naznaci trenutno aktivni ulaz
     upravljac.aktivanUlaz = sljedeciUlaz;                                                                            
     int potrebnoZaObradu=ulazniParametri[upravljac.aktivanUlaz][3];
@@ -329,7 +330,7 @@ static void obradiUlaz(int signum){
         time_utils_delay_for(5);
         potrebnoZaObradu -= 5;
     }
-    if (ulazniParametri[sljedeciUlaz][6] == 0 && potrebnoZaObradu <= 0 ){
+    if (upravljac.aktivanUlaz==zahtjevajucaDretva && ulazniParametri[sljedeciUlaz][6] == 0 && potrebnoZaObradu <= 0 ){
         //obrada nije prekinuta nego zavrsena
         //moras postaviti one koristene periode ukupni broj perioda koristen i slicno
         //izracunati vrijeme reakcije?
@@ -345,6 +346,7 @@ static void obradiUlaz(int signum){
         //printajVrijeme("Upravljac: Obrada dretve %d prekinuta.");
         char msg[100];
         sprintf(msg, "Upravljac: Zadatku %d je obrada prekinuta", upravljac.aktivanUlaz);
+        ulazniParametri[upravljac.aktivanUlaz][6] = 1;
         printajVrijeme(msg);
     }
 
@@ -372,7 +374,7 @@ int pokreniUpravljaca()
         }
     }
     //spavaj 10 ms
-    time_utils_delay_for(10);
+    time_utils_delay_for(20);
     pokreniPeriodickiPrekid(obradiUlaz);
 
 
@@ -446,7 +448,7 @@ int main(int argc, char *argv[])
     ulazniParametri = malloc(brUlaza * sizeof(int *));
     for (int i = 0; i < brUlaza; i++)
     {
-        ulazniParametri[i] = malloc(7 * sizeof(int));
+        ulazniParametri[i] = malloc(10 * sizeof(int));
         ulazniParametri[i][0] = i;               // ID dretve
         ulazniParametri[i][1] = ulaz[i][1];      // Početno vrijeme
         ulazniParametri[i][2] = ulaz[i][0];      // Perioda događaja
@@ -456,6 +458,7 @@ int main(int argc, char *argv[])
         ulazniParametri[i][6] = 0;              //je li obrada prekinuta
         ulazniParametri[i][7] = ulaz[i][3];     //je li popuna
         ulazniParametri[i][8] = 0;     //kolko drugih perioda
+        ulazniParametri[i][9] = 0;     //kolko puta prekinut
     }
     printf("IHAHAH\n");
     //u lab 2 upravljac nije dretva 

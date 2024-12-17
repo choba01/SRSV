@@ -181,7 +181,7 @@ void *ulaznaDretva(void *arg)
     int *param = (int *)arg;
     int id = param[0];
     char msg[100];  // Osiguraj dovoljno prostora za string
-    sprintf(msg, "dretva %d", id);
+    //sprintf(msg, "dretva %d", id);
     //time_utils_delay_for(param[1]);
     //printajVrijeme(msg);
     if (param[7] == 0){
@@ -232,10 +232,10 @@ void *ulaznaDretva(void *arg)
         if ( (vrijemeReakcijeUlaza[id].tv_sec != 0 || vrijemeReakcijeUlaza[id].tv_nsec != 0) && nijeKraj)//odgovor primljen od upravljaca
         {
             if(ulazniParametri[id][5]==1){//obrada upravljaca gotova
-                printf("%d: Tocno vrijeme kad je prepoznata promjena : tv_sec = %ld, tv_nsec = %ld\n", 
+                /* printf("%d: Tocno vrijeme kad je prepoznata promjena : tv_sec = %ld, tv_nsec = %ld\n", 
                 id, vrijemeReakcijeUlaza[id].tv_sec, vrijemeReakcijeUlaza[id].tv_nsec);
                 printf("%d: Tocno vrijeme kad je promjena postavljena: tv_sec = %ld, tv_nsec = %ld\n", 
-                id, trenutakPromjeneStanja.tv_sec, trenutakPromjeneStanja.tv_nsec);
+                id, trenutakPromjeneStanja.tv_sec, trenutakPromjeneStanja.tv_nsec); */
                 double vrijemeReakcije = izracunajVrijemeUMilisekundama(trenutakPromjeneStanja, vrijemeReakcijeUlaza[id]);
                 printf("Vrijeme reakcije za dretvu %d: %.8f ms\n", id,vrijemeReakcije);
                 printf("ZAVRSILA JE OBRADA DRETVE %d\n",id);
@@ -255,9 +255,9 @@ void *ulaznaDretva(void *arg)
             zahtjevajucaDretva = -1;
         }
         //ulazniParametri[id][4] = 0;
-        printf("perioda dretve %d je %d\n",id,perioda);
+        //printf("perioda dretve %d je %d\n",id,perioda);
         trenutakPrvePojave += perioda;
-        printf("            vrijeme pojave dretve %d je %d\n",id,trenutakPrvePojave);
+        //printf("            vrijeme pojave dretve %d je %d\n",id,trenutakPrvePojave);
     }
     ukupnoProsjecno+=stat.prosjecnoVrijemeReakcije;
     ukupnoPromjena+=stat.brojPromjenaStanja;
@@ -266,12 +266,12 @@ void *ulaznaDretva(void *arg)
         globalnoMaksimalno = stat.maksimalnoVrijemeReakcije;
     }
     // Ispis statistike za ovu dretvu
-    /* printf("Statistika za ulaz %d:\n", id);
+    printf("Statistika za ulaz %d:\n", id);
     printf("  Broj promjena stanja: %d\n", stat.brojPromjenaStanja);
     printf("  Prosječno vrijeme reakcije: %.8f ms\n", stat.prosjecnoVrijemeReakcije);
     printf("  Maksimalno vrijeme reakcije: %.8f ms\n", stat.maksimalnoVrijemeReakcije);
     printf("  Broj neobrađenih događaja: %d\n", stat.brojNeobradjenihDogadjaja);
-    printf("\n"); */
+    printf("\n");
     return NULL;
 }
 

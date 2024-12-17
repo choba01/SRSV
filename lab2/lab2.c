@@ -42,6 +42,7 @@ static int brUlaza;
 double ukupnoProsjecno=0.0;
 int ukupnoPromjena=0;
 int ukupnoNeobradeno=0;
+int ukupnoDuplih=0;
 double globalnoMaksimalno=0.0;
 timer_t timer;
 volatile int zahtjevZaObradom=0;
@@ -57,6 +58,7 @@ typedef struct
     double prosjecnoVrijemeReakcije;
     double maksimalnoVrijemeReakcije;
     int brojNeobradjenihDogadjaja;
+    int brojDuplihPerioda;
 } Statistika;
 
 static struct _upravljac{
@@ -130,6 +132,7 @@ int dajIduci(){
 void obradiSigInt(int sig)
 {
     nijeKraj = 0;
+    
     printf("Simulacija prekinuta na signal SIGINT\n");
 }
 
@@ -193,7 +196,7 @@ void *ulaznaDretva(void *arg)
     //printf("trenutak prve pojave dretve %d je %d \n",id,trenutakPrvePojave);
     int perioda = param[2];
     int vrijemeObrade = param[3];
-    Statistika stat = {0, 0.0, 0.0, 0}; // Inicijalizacija statistike za ovu dretvu
+    Statistika stat = {0, 0.0, 0.0, 0,0}; // Inicijalizacija statistike za ovu dretvu
     struct timespec trenutnoVrijeme;
     clock_gettime(CLOCK_MONOTONIC, &trenutnoVrijeme);
     
@@ -216,6 +219,7 @@ void *ulaznaDretva(void *arg)
         ulazniParametri[id][4] =  1; //promjena ulaza
         printf("dretva %d je postavila zahtjev za obradom = : %d\n",id,zahtjevZaObradom);
         
+        stat.brojPromjenaStanja++;
         pthread_mutex_lock(&print_mutex);
         zahtjevZaObradom = 1;
         zahtjevajucaDretva = id;
@@ -225,6 +229,7 @@ void *ulaznaDretva(void *arg)
 
         while (!ulazniParametri[id][5] && (izracunajVrijemeUMilisekundama(pocetakRada, trenutnoVrijeme) < trenutakPrvePojave + perioda))
         {
+            
             time_utils_delay_for(10);
             clock_gettime(CLOCK_MONOTONIC, &trenutnoVrijeme);
         }
@@ -232,14 +237,13 @@ void *ulaznaDretva(void *arg)
         if ( (vrijemeReakcijeUlaza[id].tv_sec != 0 || vrijemeReakcijeUlaza[id].tv_nsec != 0) && nijeKraj)//odgovor primljen od upravljaca
         {
             if(ulazniParametri[id][5]==1){//obrada upravljaca gotova
-                /* printf("%d: Tocno vrijeme kad je prepoznata promjena : tv_sec = %ld, tv_nsec = %ld\n", 
+                printf("%d: Tocno vrijeme kad je prepoznata promjena : tv_sec = %ld, tv_nsec = %ld\n", 
                 id, vrijemeReakcijeUlaza[id].tv_sec, vrijemeReakcijeUlaza[id].tv_nsec);
                 printf("%d: Tocno vrijeme kad je promjena postavljena: tv_sec = %ld, tv_nsec = %ld\n", 
-                id, trenutakPromjeneStanja.tv_sec, trenutakPromjeneStanja.tv_nsec); */
+                id, trenutakPromjeneStanja.tv_sec, trenutakPromjeneStanja.tv_nsec);
                 double vrijemeReakcije = izracunajVrijemeUMilisekundama(trenutakPromjeneStanja, vrijemeReakcijeUlaza[id]);
                 printf("Vrijeme reakcije za dretvu %d: %.8f ms\n", id,vrijemeReakcije);
                 printf("ZAVRSILA JE OBRADA DRETVE %d\n",id);
-                stat.brojPromjenaStanja++;
                 stat.prosjecnoVrijemeReakcije = ((stat.prosjecnoVrijemeReakcije * (stat.brojPromjenaStanja - 1)) + vrijemeReakcije) / stat.brojPromjenaStanja;
                 if (vrijemeReakcije > stat.maksimalnoVrijemeReakcije)
                 {
@@ -262,6 +266,7 @@ void *ulaznaDretva(void *arg)
     ukupnoProsjecno+=stat.prosjecnoVrijemeReakcije;
     ukupnoPromjena+=stat.brojPromjenaStanja;
     ukupnoNeobradeno+=stat.brojNeobradjenihDogadjaja;
+    ukupnoDuplih += ulazniParametri[id][8];
     if(stat.maksimalnoVrijemeReakcije > globalnoMaksimalno){
         globalnoMaksimalno = stat.maksimalnoVrijemeReakcije;
     }
@@ -271,6 +276,7 @@ void *ulaznaDretva(void *arg)
     printf("  Prosječno vrijeme reakcije: %.8f ms\n", stat.prosjecnoVrijemeReakcije);
     printf("  Maksimalno vrijeme reakcije: %.8f ms\n", stat.maksimalnoVrijemeReakcije);
     printf("  Broj neobrađenih događaja: %d\n", stat.brojNeobradjenihDogadjaja);
+    printf("  Broj duplih perioda: %d\n", ulazniParametri[id][8]);
     printf("\n");
     return NULL;
 }
@@ -482,6 +488,7 @@ int main(int argc, char *argv[])
     printf("  Prosječno vrijeme reakcije: %.8f ms\n", ukupnoProsjecno/ukupnoPromjena);
     printf("  Maksimalno vrijeme reakcije: %.8f ms\n", globalnoMaksimalno);
     printf("  Broj neobrađenih događaja: %d\n", ukupnoNeobradeno);
+    printf("  Broj duplih perioda: %d\n", ukupnoDuplih);
     printf("\n");
     return 0;
 }

@@ -43,6 +43,7 @@ double ukupnoProsjecno=0.0;
 int ukupnoPromjena=0;
 int ukupnoNeobradeno=0;
 int ukupnoDuplih=0;
+int ukupnoNedozvoljenihDuplih=0;
 double globalnoMaksimalno=0.0;
 timer_t timer;
 volatile int zahtjevZaObradom=0;
@@ -206,14 +207,16 @@ void *ulaznaDretva(void *arg)
             clock_gettime(CLOCK_MONOTONIC, &trenutnoVrijeme);
         }
         
+        
         ulazniParametri[id][4] =  1; //promjena ulaza
        
-        
+
         stat.brojPromjenaStanja++;
         pthread_mutex_lock(&print_mutex);
         zahtjevZaObradom = 1;
         zahtjevajucaDretva = id;
         pthread_mutex_unlock(&print_mutex);
+        printf("dretva %d je postavila zahtjev za obradom = : %d\n",id,zahtjevZaObradom);
         struct timespec trenutakPromjeneStanja;//zabiljezi trenutak promjene stanja ulaza
         clock_gettime(CLOCK_MONOTONIC, &trenutakPromjeneStanja);
 
@@ -227,7 +230,7 @@ void *ulaznaDretva(void *arg)
         if ( (vrijemeReakcijeUlaza[id].tv_sec != 0 || vrijemeReakcijeUlaza[id].tv_nsec != 0) && nijeKraj)//odgovor primljen od upravljaca
         {
             if(ulazniParametri[id][5]==1){//obrada upravljaca gotova
-                
+                zahtjevZaObradom=0;
                 double vrijemeReakcije = izracunajVrijemeUMilisekundama(trenutakPromjeneStanja, vrijemeReakcijeUlaza[id]);
                 
                 stat.prosjecnoVrijemeReakcije = ((stat.prosjecnoVrijemeReakcije * (stat.brojPromjenaStanja - 1)) + vrijemeReakcije) / stat.brojPromjenaStanja;
@@ -252,6 +255,7 @@ void *ulaznaDretva(void *arg)
     ukupnoPromjena+=stat.brojPromjenaStanja;
     ukupnoNeobradeno+=stat.brojNeobradjenihDogadjaja;
     ukupnoDuplih += ulazniParametri[id][8];
+    ukupnoNedozvoljenihDuplih += ulazniParametri[id][9];
     if(stat.maksimalnoVrijemeReakcije > globalnoMaksimalno){
         globalnoMaksimalno = stat.maksimalnoVrijemeReakcije;
     }
@@ -262,6 +266,7 @@ void *ulaznaDretva(void *arg)
     printf("  Maksimalno vrijeme reakcije: %.8f ms\n", stat.maksimalnoVrijemeReakcije);
     printf("  Broj neobrađenih događaja: %d\n", stat.brojNeobradjenihDogadjaja);
     printf("  Broj duplih perioda: %d\n", ulazniParametri[id][8]);
+    printf("Koliko puta prekinut: %d\n",ulazniParametri[id][9]);
     printf("\n");
     return NULL;
 }
@@ -269,66 +274,73 @@ void *ulaznaDretva(void *arg)
 
 static void obradiUlaz(int signum){
     (void) signum;
-    printajVrijeme("Upravljac: Periodicki prekid zapoceo");
-    if (zahtjevZaObradom == 1 && upravljac.aktivanUlaz==zahtjevajucaDretva && zahtjevajucaDretva != -1){
-        //obrada nije dovrsena 
-        if(upravljac.brojPerioda == 1 && upravljac.periodiBezPrekoracenja <= 10){
-            
-            ulazniParametri[upravljac.aktivanUlaz][8]++;
-            
-            upravljac.periodiBezPrekoracenja=0;
-            upravljac.brojPerioda=2;
-            return;
-        }
-        else{            
-            
-            zahtjevZaObradom = 0;
-            
-            ulazniParametri[upravljac.aktivanUlaz][6] = 1; //obrada ulaza je prekinuta
-            ulazniParametri[upravljac.aktivanUlaz][9]++;
-            upravljac.aktivanUlaz=-1;
-            printajVrijeme("Upravljac: Obrada prekinuta.");
-        }
-    
-    }
-    
-    int sljedeciUlaz = dajIduci();
-   
-    if (zahtjevajucaDretva == -1 || sljedeciUlaz == -1 || ulazniParametri[sljedeciUlaz][7] == 0 && sljedeciUlaz != -1){
-        printajVrijeme("Upravljac: Ovo je prazan period.");
-        
-        return ;
-    }
-    //zahtjevZaObradom = 1;
-    if (sljedeciUlaz == zahtjevajucaDretva){
-       
-        struct timespec reakcija;
-        clock_gettime(CLOCK_MONOTONIC, &reakcija);
-        vrijemeReakcijeUlaza[sljedeciUlaz] = reakcija;
-    }
-    //naznaci trenutno aktivni ulaz
-    upravljac.aktivanUlaz = sljedeciUlaz;                                                                            
-    int potrebnoZaObradu=ulazniParametri[upravljac.aktivanUlaz][3];
-    upravljac.brojPerioda=1;
-    while (potrebnoZaObradu > 0 && ulazniParametri[sljedeciUlaz][6] == 0 && upravljac.aktivanUlaz==zahtjevajucaDretva){//dok nije gotov i dok nije prekinut
-        //obraduje se dretva
-        time_utils_delay_for(5);
-        potrebnoZaObradu -= 5;
-    }
-    if (upravljac.aktivanUlaz==zahtjevajucaDretva && ulazniParametri[sljedeciUlaz][6] == 0 && potrebnoZaObradu <= 0 ){
-        //obrada nije prekinuta nego zavrsena
-        
-        ulazniParametri[upravljac.aktivanUlaz][5] =1 ; //obrada je gotova
-        
-        upravljac.aktivanUlaz=-1;
+    if (nijeKraj){
 
-        if(upravljac.brojPerioda == 1){
-            upravljac.periodiBezPrekoracenja++;
-        }
-    }else{
-        //izadi iz funkcije
+        printajVrijeme("Upravljac: Periodicki prekid zapoceo");
+        if (zahtjevZaObradom == 1 && upravljac.aktivanUlaz==zahtjevajucaDretva && zahtjevajucaDretva != -1){
+            //obrada nije dovrsena 
+            if(upravljac.brojPerioda == 1 && upravljac.periodiBezPrekoracenja <= 10){
+                printf("Dozvoljena druga perioda dretvi %d\n",upravljac.aktivanUlaz);
+                ulazniParametri[upravljac.aktivanUlaz][8]++;
+                
+                upravljac.periodiBezPrekoracenja=0;
+                upravljac.brojPerioda=2;
+                return;
+            }
+            else{            
+                printf("broj perioda:%d\n",upravljac.brojPerioda);
+                zahtjevZaObradom = 0;
+                
+                ulazniParametri[upravljac.aktivanUlaz][6] = 1; //obrada ulaza je prekinuta
+                ulazniParametri[upravljac.aktivanUlaz][9]++;
+                upravljac.aktivanUlaz=-1;
+                printajVrijeme("Upravljac: Nije dozvoljena druga perioda.");
+                
+            }
         
-        ulazniParametri[upravljac.aktivanUlaz][6] = 1;        
+        }
+        
+        int sljedeciUlaz = dajIduci();
+        printf("sljedeci ulaz je %d\n",sljedeciUlaz);
+        if (zahtjevajucaDretva == -1 || sljedeciUlaz == -1 || ulazniParametri[sljedeciUlaz][7] == 0 && sljedeciUlaz != -1){
+            printajVrijeme("Upravljac: Ovo je prazan period.");
+            
+            return ;
+        }
+        //zahtjevZaObradom = 1;
+        if (sljedeciUlaz == zahtjevajucaDretva){
+        
+            struct timespec reakcija;
+            clock_gettime(CLOCK_MONOTONIC, &reakcija);
+            vrijemeReakcijeUlaza[sljedeciUlaz] = reakcija;
+        }
+        upravljac.aktivanUlaz = zahtjevajucaDretva;                                                                            
+        //naznaci trenutno aktivni ulaz
+        int potrebnoZaObradu=ulazniParametri[upravljac.aktivanUlaz][3];
+        
+        while (potrebnoZaObradu > 0 && ulazniParametri[sljedeciUlaz][6] == 0 && upravljac.aktivanUlaz==zahtjevajucaDretva){//dok nije gotov i dok nije prekinut
+            //obraduje se dretva
+            upravljac.brojPerioda=1;
+            printf("obradujem dretvu %d\n",upravljac.aktivanUlaz);
+            time_utils_delay_for(5);
+            potrebnoZaObradu -= 5;
+        }
+        if (upravljac.aktivanUlaz==zahtjevajucaDretva && ulazniParametri[sljedeciUlaz][6] == 0 && potrebnoZaObradu <= 0 ){
+            //obrada nije prekinuta nego zavrsena
+            
+            ulazniParametri[upravljac.aktivanUlaz][5] =1 ; //obrada je gotova
+            printf("zavrsila je obrada dretve %d\n",upravljac.aktivanUlaz);
+            upravljac.aktivanUlaz=-1;
+
+            if(upravljac.brojPerioda == 1){
+                upravljac.periodiBezPrekoracenja++;
+                upravljac.brojPerioda=0;
+            }
+        }else{
+            //izadi iz funkcije
+            
+            ulazniParametri[upravljac.aktivanUlaz][6] = 1;        
+        }
     }
 
 }
@@ -355,7 +367,7 @@ int pokreniUpravljaca()
         }
     }
     //spavaj 10 ms
-    time_utils_delay_for(20);
+    time_utils_delay_for(30);
     pokreniPeriodickiPrekid(obradiUlaz);
 
 
@@ -378,7 +390,7 @@ int main(int argc, char *argv[])
     int ulaz[][4] = {
         
         {1000, 100, 30, 1}, {1000, 500, 30, 1}, {1000, 800, 30, 1},
-        {5000, 200, 50, 1}, {5000, 600, 50, 1}, {5000, 900, 50, 1},
+        {5000, 200, 150, 1}, {5000, 600, 50, 1}, {5000, 900, 50, 1},
         {5000, 1200, 50, 1}, {5000, 1600, 50, 1}, {5000, 1900, 50, 1}, //b4-b6
         {5000, 2200, 50, 1}, {5000, 2600, 50, 1}, {5000, 2900, 50, 1}, //b7-b9
         {5000, 3200, 50, 1}, {5000, 3600, 50, 1}, {5000, 3900, 50, 1}, //b9-b12

@@ -10,7 +10,7 @@
 #define INTERRUPT_PERIOD_MS (100U)
 #define CLOCK CLOCK_MONOTONIC
 
-#define SIMULATOR_THREAD_PRIORITY (15U)
+#define SIMULATOR_THREAD_PRIORITY (99)
 
 #define WARN 0
 #define STOP 1
@@ -347,7 +347,8 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
-
+    int max_priority = sched_get_priority_max(SCHED_FIFO);
+    printf("Maksimalni prioritet za SCHED_FIFO je %d\n", max_priority);
     int id[brUlaza];
     for (int i = 0; i < brUlaza; i++)
     {
@@ -358,7 +359,8 @@ int main(int argc, char *argv[])
             return 1;
         } */
         struct sched_param param;
-        param.sched_priority = brUlaza - (ulazniParametri[id[i]][0]);
+        
+        param.sched_priority = max_priority - (ulazniParametri[id[i]][0])-1;
         CALL(STOP, pthread_attr_setschedparam, &attr, &param);
         CALL(STOP, pthread_create, &upravljackeDretve[i], &attr, dretvaUpravljac, (void *) &id[i]);
     }

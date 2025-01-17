@@ -255,9 +255,9 @@ void *dretvaUpravljac(void *p)
     int prvaPojavaUlazneDretve = ulazniParametri[id][1] + 5;
     while (nijeKraj)
     {       
-        printajVrijeme("prije sleepa");
+        //printajVrijeme("prije sleepa");
         time_utils_delay_for(prvaPojavaUlazneDretve);
-        printajVrijeme("pposlje sleepa");
+        //printajVrijeme("pposlje sleepa");
         int zatrazenaPromjenaUlaza =ulazniParametri[id][4];
         int vrijemeObrade = ulazniParametri[id][3];
         if (zatrazenaPromjenaUlaza == 1 )
@@ -336,8 +336,13 @@ int main(int argc, char *argv[])
     CALL(STOP, pthread_attr_setinheritsched, &attr, PTHREAD_EXPLICIT_SCHED);
     CALL(STOP, pthread_attr_setschedpolicy, &attr, SCHED_FIFO);
     struct sched_param param;
-    param.sched_priority = SIMULATOR_THREAD_PRIORITY;
+    struct sched_param param2;
+    int max_priority = sched_get_priority_max(SCHED_FIFO);
+    printf("Maksimalni prioritet za SCHED_FIFO je %d\n", max_priority);
+    param.sched_priority = max_priority;
     CALL(STOP, pthread_attr_setschedparam, &attr, &param);
+    param2.sched_priority = max_priority-1;
+    CALL(STOP, pthread_attr_setschedparam, &attr, &param2);
 
     for (int i = 0; i < brUlaza; i++)
     {
@@ -347,8 +352,6 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
-    int max_priority = sched_get_priority_max(SCHED_FIFO);
-    printf("Maksimalni prioritet za SCHED_FIFO je %d\n", max_priority);
     int id[brUlaza];
     for (int i = 0; i < brUlaza; i++)
     {
@@ -360,7 +363,7 @@ int main(int argc, char *argv[])
         } */
         struct sched_param param;
         
-        param.sched_priority = max_priority - (ulazniParametri[id[i]][0])-1;
+        param.sched_priority = max_priority/2 - (ulazniParametri[id[i]][0])-2 ;
         CALL(STOP, pthread_attr_setschedparam, &attr, &param);
         CALL(STOP, pthread_create, &upravljackeDretve[i], &attr, dretvaUpravljac, (void *) &id[i]);
     }

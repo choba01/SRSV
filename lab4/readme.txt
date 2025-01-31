@@ -1,0 +1,2 @@
+Ostvarenje sustava koji komunicira putem rabbitmq-a, a sastoji se od tri dijela; send, process i receive. Send generira brojeve i šalje ih prvim kanalom prema processu koji primljene brojeve kvadrira i šalje receiveru drugim kanalom.
+Kod senda se periodički javlja ispad sustava, a compose datoteka, u kojoj je postavljen atribut restart na always, otprilike treba desetak sekundi za ponovno pokretanje sustava.
